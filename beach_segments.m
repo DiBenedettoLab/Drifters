@@ -18,6 +18,14 @@
 % NOTE: segments must have more than one data point to be output (e.g. if
 % velocity is below vcrit for only one point, that is not counted)
 %% Beach Segments
+%{
+finds the segments of time where a drifter enters a beached zone, defined
+by some distance from the shore (bcrit) and/or some maximum speed (vcrit).
+Inputted drifter information should be in the form of a table/struct with
+categories named: coast, speed, coast_velocity, time, days_norm, and id
+(can be 1x1) which are distance from coast, true speed, distance from coast
+per hour, unix time, normalized days, and the id of the drifter. 
+%}
 function [indx,beachtime,dtout]=beach_segments(dt,bcrit,vcrit,plots)
 
 %checks that bcrit and vcrit are entered

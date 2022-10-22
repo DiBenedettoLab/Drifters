@@ -10,6 +10,10 @@
 %dt: table with data
 %ocean_name: full of the ocean
 % (e.g. if ocean_location='na',ocean_name='Northern Atlantic)
+%---REQUIRED ADDITIONAL FILES---
+% 'buoydata2.mat'
+% 'spotdata2.mat'
+% contact Helena Schreder for these files
 %% load_data
 function [ds,dt,ocean_name]=load_drift_data(varargin)
 
@@ -46,7 +50,7 @@ switch data_set
         end
 
         %loads data after everything has been checked
-        load('Data/spotdata2.mat')
+        load('spotdata.mat')
         ds=spotdata.(dataname);
         dt=spotdata.tables.(dataname);
 
@@ -67,7 +71,7 @@ switch data_set
         end
 
         %loads data
-        load('Data/buoydata2.mat')
+        load('buoydata.mat')
         ds=buoydata.(dataname); 
         dt=buoydata.tables.(dataname);
 
@@ -85,8 +89,8 @@ switch data_set
         end
 
         %loads data
-        load('Data/buoydata2.mat')
-        load('Data/spotdata2.mat')
+        load('buoydata.mat')
+        load('spotdata.mat')
         ds=[buoydata.(dataname),spotdata.(dataname)]; 
         dt=[buoydata.tables.(dataname);spotdata.tables.(dataname)];
 

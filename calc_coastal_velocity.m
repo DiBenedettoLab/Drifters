@@ -16,7 +16,7 @@ function [coastvel,hours]=calc_coastal_velocity(coastdist,time)
     end
 
     if numel(coastdist)>2
-        %finds velocity and acceleration vectors using central difference methods
+        %finds velocity vectors using central difference methods
         for i=2:numel(coastdist)-1
             h=(hours(i+1)-hours(i-1));
             coastvel(i)=(coastdist(i+1)-coastdist(i-1))/(h);

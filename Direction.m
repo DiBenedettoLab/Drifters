@@ -3,7 +3,7 @@
 dataset='spot'; %spot or buoy
 location='all'; %ocean to consider
 [ds,dt,oceanname]=load_drift_data(dataset,location);
-load('Data/coast_latlon.mat');
+load('coast_latlon.mat');
 
 
 %% Histogram

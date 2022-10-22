@@ -46,9 +46,10 @@ ax.XTick=bins;
 ax.XTickLabel=bins;
 ax.XGrid='on';
 ax.YGrid='on';
-xlabel('Max distance from coast (km)');ylabel('percent of beacehd drifters')
+xlabel('Max distance from coast (km)');
+ylabel('percent of beached drifters')
 title([dataset ' ' oceanname])
 
-% yyaxis right
+yyaxis right
 plot(center,numinbin,'.-')
 ylabel('number of drifters')
