@@ -1,4 +1,8 @@
 # Drifters
+
+## Project Overview
+Find the probability that an ocean surface drifter will end up on a beach; this will change depending on where in the ocean the drifter is.
+
 ## Functions
 
 ### beach_segments.m
