@@ -12,7 +12,7 @@ Finds the segments of time where a drifter enters a beached zone, defined by som
 **calc_coastal_velocity**
 Calculates coastal distance per hour using 2nd order central difference method (forward/backward for endpoints) taking into account tilmestep jumps. 
 
-**load_drift_data**
+**load_drift_data***
 Loads requested drifter data as a struct and table. Requested data can be from spotters, buoys, or both and can be requested from a specific region (e.g. North Atlantic).
 _Note: requires .mat files 'buoydata.mat' and/or 'spotdata.mat'_
 
@@ -21,4 +21,4 @@ Visualizes the trajectory of drifters. Output is interactive gui that shows the 
 
 ## Scripts
 
-TBD
+**BeachvsMaxShore***  Compares percent and number of drifters which beach to the maximum distance they go from the shore. 
