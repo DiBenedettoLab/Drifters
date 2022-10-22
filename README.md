@@ -6,6 +6,9 @@ Find the probability that an ocean surface drifter will end up on a beach; this 
 ## Functions
 
 ### beach_segments.m
-**finds the segments of time where a drifter enters a beached zone**, defined by some distance from the shore (bcrit) and/or some maximum speed (vcrit).  
+**Finds the segments of time where a drifter enters a beached zone**, defined by some distance from the shore (bcrit) and/or some maximum speed (vcrit).  
+
+### calc_coastal_velocity.m
+**Calculates coastal distance per hour** using 2nd order central difference method (forward/backward for endpoints) taking into account tilmestep jumps. 
 
 Etc. (add later)
