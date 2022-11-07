@@ -36,7 +36,7 @@ Visualizes the trajectory of drifters. Output is interactive gui that shows the 
 
 **TrajectoryCompare**<sup>1,2</sup> Time to beach vs. max distance; maximum distance from coast; indivdual trajectories; speed and coast distance
 
-**TransitionMatrix**<sup>1,2</sup> transition matrices [_need to remove v1_]
+**TransitionMatrix**<sup>1,2</sup> transition matrices. _v1 makes grids with equal area, incorporate this into v2_
 
 ## Footnotes: Data/Functions Needed
 
