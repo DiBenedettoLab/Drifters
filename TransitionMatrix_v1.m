@@ -1,4 +1,6 @@
-%trans mat
+%trans mat, v1. This is the version where I did something weird with the
+%cells. Could be helpful for making the cells be of equal area since they
+%are not in v2.
 %% Transtion Matrix, Schreder, 8/16/2022
 % load data
 load('Data/spotdata.mat')

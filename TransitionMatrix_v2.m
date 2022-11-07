@@ -1,4 +1,8 @@
-% transition matrix but it's not weird this time
+% discretizes the ocean into dx^2 cells and plots with a color map:
+% 1. the probabiity of drifters beaching,
+% 2. the number of beached drifters,
+% 3. the number of pings
+% 4. the number of drifters
 %% Transition Matrix v2, Schreder 9/1/22
 %dataset
 dataset='both'; %spot or buoy
@@ -123,7 +127,7 @@ if exist('pax')
 end
 
 switch data2plot
-    case 'trans'
+    case 'trans' 
         plotting_mat=trans_mat;
         plotting_name=['N_{beached spotters}/N_{in cell} ' mindriftext];
         ax=gca; %makes NaN values grey
@@ -201,11 +205,3 @@ end
 hmap.Color='b';
 hbeach=plot3(lons,lats,3*ones(size(lats)),'m*','LineWidth',1,'MarkerSize',4);
 hbeach1=plot3(lons1,lats1,3*ones(size(lats1)),'yo','LineWidth',1,'MarkerSize',4,'LineWidth',2);
-
-
-
-
-
-
-
-
