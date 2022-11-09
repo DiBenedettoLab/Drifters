@@ -3,9 +3,8 @@
 %are not in v2.
 %% Transtion Matrix, Schreder, 8/16/2022
 % load data
-load('Data/spotdata.mat')
 load('Data/coast_latlon.mat');
-ds=spotdata.all;
+
 
 %% Initial plot
 %steps

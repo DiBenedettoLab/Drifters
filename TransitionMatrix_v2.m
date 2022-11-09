@@ -3,44 +3,89 @@
 % 2. the number of beached drifters,
 % 3. the number of pings
 % 4. the number of drifters
+%create a grid that is nxnº or has the same surface area by changing
+%grid_type to 'degree' or 'area'
 %% Transition Matrix v2, Schreder 9/1/22
+
+%%% --- LOAD DATA --- %%%
 %dataset
-dataset='both'; %spot or buoy
+dataset='spot'; %spot or buoy
 location='all'; %ocean to consider
 
 %load data
-load('Data/coast_latlon.mat');
+load('coast_latlon.mat');
 [ds,dt,oceanname]=load_drift_data(dataset,location);
 
-%% Grid
-%steps
-dx=2; %cell size in degrees %should be 0.5-1
+%% ------------------------- SPECIFICATIONS ------------------------ %%
 bcrit=10; %beaching distance. should be in km for spot and m for buoy
-coastdirmat=false;
+makecoastdirmat=false;
+makevelmat=true;
+grid_type='area'; %'degree' or 'area'
 
-%grid of globe; each cell is square and encloses all data
-latbounds=[floor(min(dt.lat)/dx)*dx,ceil(max(dt.lat)/dx)*dx];
-lonbounds=[floor(min(dt.lon)/dx)*dx,ceil(max(dt.lon)/dx)*dx];
+%% ------------------------- CREATE GRID ------------------------ %%
+% OPTIONS: 
+% 1. degree: square cells with side length in degrees
+% 2. area: cells with equal area
 
-%grid for center of the section
-[xpt,ypt]=meshgrid(lonbounds(1)+dx/2:dx:lonbounds(2)-dx/2,latbounds(1)+dx/2:dx:latbounds(2)-dx/2);
+switch grid_type
+    case 'degree'
 
-%grid for square enclosing each section
-latg=latbounds(1):dx:latbounds(2);
-long=lonbounds(1):dx:lonbounds(2);
+        %STEPS
+        dx=2;
+        
+        %BOUNDARIES
+        latbounds=[floor(min(dt.lat)/dx)*dx,ceil(max(dt.lat)/dx)*dx];
+        lonbounds=[floor(min(dt.lon)/dx)*dx,ceil(max(dt.lon)/dx)*dx];
+        
+        %CENTER POINTS
+        [xpt,ypt]=meshgrid(lonbounds(1)+dx/2:dx:lonbounds(2)-dx/2,latbounds(1)+dx/2:dx:latbounds(2)-dx/2);
+        
+        %GRID EDGES
+        latg=latbounds(1):dx:latbounds(2);
+        long=lonbounds(1):dx:lonbounds(2);
 
-%create figure
+    case 'area'
+
+        %# OF CELLS
+        c=50; %amount of lateral grids, must be even, will be *2 for longitudinal
+        
+        % LATITUDE: spacing changes
+        r=zeros(c+1,1);
+        r(1)=90;
+        R=90*sqrt(2/(c/2+1));
+        r(2:c/2)=90-R.*sqrt((2:(c/2))/2);
+        r(c/2+2:c+1)=-flipud(r(1:c/2));
+        latg=flipud(r);
+        
+        %LONGITUDE
+        long=linspace(-180,180,(c)*2+1);
+        
+        %BOUNDARIES for plotting
+        lonbounds=[-180,180];
+        latbounds=[-90,90];
+
+        %CENTER POINTS
+        xcenter=diff(long)/2+long(1:end-1);
+        ycenter=diff(latg)/2+latg(1:end-1);
+        [xpt,ypt]=meshgrid(xcenter,ycenter);
+end
+
+%GRID
+[xg,yg]=meshgrid(long,latg);
+
+
+%%% --- CREATE FIGURE --- %%%
+% PLOT SPECS
 fig=figure(1);clf;hold on
 fig.Color='w';
 daspect([1 1 1])
-
-%plots initial points
-%plot(xpt,ypt,'.m','LineWidth',3)
-[xg,yg]=meshgrid(long,latg);
-% mesh(xg,yg,zeros(size(xg)),'EdgeColor','#CDD6DE','facecolor','none','LineWidth',0.1)
-view([0,0,1])
+view([0,0,1]);box on
 xlim(lonbounds);ylim(latbounds)
 xlabel('longitude');ylabel('latitude')
+
+% PLOTS GRID
+% plot(xpt,ypt,'.b','LineWidth',3)
+% mesh(xg,yg,zeros(size(xg)),'EdgeColor','#CDD6DE','facecolor','none','LineWidth',0.1)
 
 %plotting land points for refrence
 coastloncheck=coast_lon>=lonbounds(1) & coast_lon<=lonbounds(2);
@@ -50,108 +95,155 @@ coast_y=coast_lat(coast2use);
 coast_x=coast_lon(coast2use);
 hmap=plot3(coast_x,coast_y,1.1*ones(size(coast_x)),'.','MarkerSize',0.5,'Color','m'); %plot3 so these points end up above the surf plot
 
-%plots all spotter points
-% plot(dt.lon,dt.lat,'.','MarkerSize',0.2,'Color','m')
+%% ------------------------- GET GRIDDED DATA ------------------------ %%
 
-%% Assigning points to cells in the grid
-%NOTE: if a point is exactly on the grid, somethings gonna break
-n=1;
-gridloc_mat=zeros(size(xg));
-beached_mat=zeros(size(xg));
-direction_mat=zeros(size(xg));
-dataexists=logical(zeros(size(xg)));
-gridids_mat=zeros(size(xg));
+%%% --- INITIALIZE MATS --- %%%
+mPing=zeros(size(xg));
+mBeach=zeros(size(xg));
+mInBeach=zeros(size(xg));
+mCoastDir=zeros(size(xg));
+mUniqueID=zeros(size(xg));
+mLonVelAll=zeros(size(xg));
+mLatVelAll=zeros(size(xg));
 
+%%% --- COLLECT DATA --- %%%
 for i=1:length(ds)
-    beaches=(ds(i).coast(end)<=bcrit); %ends up in beached zone
-    
-    %finding whether is it moving towards or from coast
-    if coastdirmat
+
+    %COASTAL DIRECTION
+    if makecoastdirmat
         coastvel=calc_coastal_velocity(ds(i).coast,ds(i).time);
         coastdir=coastvel./abs(coastvel);
     end
 
-    %to track the unique ID's in each cell
-    gridloc_mat_temp=zeros(size(xg));
+    %to track unique IDs
+    ping_mat_temp=zeros(size(xg));
 
     for j=1:length(ds(i).lat)
 
-        %latitude and longitude points
-        latpt=ds(i).lat(j); %first latitude point for one spotter
-        lonpt=ds(i).lon(j); %first longitude point for one spotter
+        %POINTS
+        latpt=ds(i).lat(j); 
+        lonpt=ds(i).lon(j); 
     
-        %finding where point lies
-        row=find(latpt>yg(:,1),1,'last'); %row where the lat lies
-        col=find(lonpt>xg(row,:),1,'last'); %correct row 
+        %PLACING IN GRID
+        row=find(latpt>yg(:,1),1,'last'); 
+        col=find(lonpt>xg(row,:),1,'last'); 
     
-        %storing information
-        gridloc_mat(row,col)=gridloc_mat(row,col)+1;
-        beached_mat(row,col)=beached_mat(row,col)+(ds(i).coast(end)<=bcrit);
-        gridloc_mat_temp(row,col)=gridloc_mat(row,col)+1;
-        n=n+1;
+        %STORE DATA
+        mPing(row,col)=mPing(row,col)+1;
+        mBeach(row,col)=mBeach(row,col)+(ds(i).coast(end)<=bcrit);
+        mInBeach(row,col)=mInBeach(row,col)+(sum([ds(i).coast]<=bcrit)>0);
+        ping_mat_temp(row,col)=mPing(row,col)+1;
 
-        %coastal direction 
-        if coastdirmat
-            dataexists(row,col)=true;
-            direction_mat(row,col)=direction_mat(row,col)+coastdir(j);
+        %COASTAL DIRECTION
+        if makecoastdirmat
+            mCoastDir(row,col)=mCoastDir(row,col)+coastdir(j);
         end
+
+        %VELOCITY
+        if makevelmat
+            mLonVelAll(row,col)=mLonVelAll(row,col)+ds(i).speed(j)*cosd(90-ds(i).direction(j));
+            mLatVelAll(row,col)=mLatVelAll(row,col)+ds(i).speed(j)*sind(90-ds(i).direction(j));
+        end
+
     end
-    %counts how many unique ID's are in a cell
-    gridids_mat=gridids_mat+(gridloc_mat_temp>0);
+
+    %UNIQUE IDS
+    mUniqueID=mUniqueID+(ping_mat_temp>0);
 
 end %i=1:length(ds)
 
 %removing points without data
-if coastdirmat
-    direction_mat(~dataexists)=NaN;
+if makecoastdirmat
+    mCoastDir(mUniqueID==0)=NaN;
 end
 
-%transition matrix
-minimumdrifters=5; %the minum amount of drifters for data in trans mat to be considered
-trans_mat=beached_mat./gridloc_mat;
+%% ------------------ CALCULATE PROBABILITY MATRICES ----------------- %%
 
-%removing points where there aren't enough drifters
+%amount of drifters needed in each cell
+minimumdrifters=0; 
+
+%PROBABILITY MATRIX
+mProb=mBeach./mPing;
+mProbIn=mInBeach./mPing;
+
+%MEAN VELOCITY
+if makevelmat
+    mLonVel=mLonVelAll./mPing;
+    mLatVel=mLatVelAll./mPing;
+    mLatVel(mUniqueID==0)=NaN;
+    mLonVel(mUniqueID==0)=NaN;
+    mMagVel=sqrt(mLonVel.^2+mLatVel.^2);
+end
+
+%REMOVE DATA
 if minimumdrifters>0
-    notenoughdata_log=gridids_mat<minimumdrifters;
-    trans_mat(notenoughdata_log)=NaN;
+    DataMin=mUniqueID<minimumdrifters;
     mindriftext=['(where there are at least ' num2str(minimumdrifters) ' unique drifters)'];
+    mProb(DataMin)=NaN;
+
+    if makevelmat
+        mProbIn(DataMin)=NaN;
+        mMagVel(DataMin)=NaN;
+        mLonVel(DataMin)=NaN;
+        mLatVel(DataMin)=NaN;
+    end
 else
     mindriftext='(no minimum drifter in cell requirement)';
 end
 
-%% plotting transition matrix on map
+%% ----------------------------- PLOTTING ----------------------------- %%
+%Can plot:
+% 1. probbeach: probability will end beached
+% 2. probinbeach: probability it will ever enter coastal zone
+% 3. beach: all beached points
+% 4. pings: all pings
+% 5. drift: # drifters in each cell
+% 6. coastdirec: moving to or away from coast (note: makecoastdirmat=true)
+% 7. quiver: velocity plots (note: must set makevelmat=true)
 
-data2plot='pings'; %'trans' or 'beach'
+data2plot='quiver'; 
+
+%deletes elements if rerun
 if exist('pax')
     delete(pax)
 end
+if exist('quiv')
+    delete(quiv)
+end
 
 switch data2plot
-    case 'trans' 
-        plotting_mat=trans_mat;
+    case 'probbeach' 
+        plotting_mat=mProb;
         plotting_name=['N_{beached spotters}/N_{in cell} ' mindriftext];
         ax=gca; %makes NaN values grey
         set(ax,'Color',[0.8,0.8,0.8])
-        load('Online Funcs/tealcolormap.mat')
-        colormap(flip(tealcolormap));
+        load('tealcolormap.mat')
+        colormap((tealcolormap));
+    case 'probinbeach' 
+        plotting_mat=mProbIn;
+        plotting_name=['N_{spotters enter coastal zone}/N_{in cell} ' mindriftext];
+        ax=gca; %makes NaN values grey
+        set(ax,'Color',[0.8,0.8,0.8])
+        load('tealcolormap.mat')
+        colormap((tealcolormap));
     case 'beach'
-        plotting_mat=beached_mat;
+        plotting_mat=mBeach;
         plotting_name='N_{beached spotters}';
-        load('Online Funcs/tealcolormap.mat')
+        load('tealcolormap.mat')
         colormap(tealcolormap);
     case 'pings'
-        plotting_mat=gridloc_mat;
+        plotting_mat=mPing;
         plotting_name='N_{pings in cell}';
-        load('Online Funcs/tealcolormap.mat')
+        load('tealcolormap.mat')
         colormap(tealcolormap);
     case 'drift'
-        plotting_mat=gridids_mat;
+        plotting_mat=mUniqueID;
         plotting_name='N_{drifters in cell}';
-        load('Online Funcs/tealcolormap.mat')
+        load('tealcolormap.mat')
         colormap(tealcolormap);
-    case 'direc'
-        if coastdirmat
-            plotting_mat=direction_mat;
+    case 'coastdirec'
+        if makecoastdirmat
+            plotting_mat=mCoastDir;
             plotting_name='Moving to or away from coast';
             ax=gca; %makes NaN values grey
             set(ax,'Color',[0.8,0.8,0.8])
@@ -159,19 +251,55 @@ switch data2plot
         else
             error('Coastal direction not collected, must rerun.')
         end
+    case 'quiver'
+        if makevelmat
+            plotting_mat=mMagVel;
+            ax=gca; %makes NaN values grey
+            set(ax,'Color',[0.8,0.8,0.8])
+            plotting_name='Velocity';
+            quiv=quiver(xpt,ypt,mLonVel(1:end-1,1:end-1),mLatVel(1:end-1,1:end-1),'color','k','AutoScaleFactor',3);
+            load('tealcolormap.mat')
+            colormap((tealcolormap));
+        else
+            error('Velocity matrix not collected, please rerun with makevelmat=0')
+        end
     otherwise
-        if coastdirmat
+        if makecoastdirmat
             error("Enter 'trans', 'beach', 'pings', 'drift', or 'direc'")
         else
             error("Enter 'trans', 'beach', 'pings', or 'drift'")
         end
 end
 
-pax=pcolor(xg(1,:)+dx/2,yg(:,1)+dx/2,plotting_mat);%,'EdgeColor','none')%,'FaceAlpha',1)
+pax=pcolor(xg(1,:),yg(:,1),plotting_mat);%,'EdgeColor','none')%,'FaceAlpha',1)
+% pax=pcolor(xg(1,:)+dx/2,yg(:,1)+dx/2,plotting_mat);%,'EdgeColor','none')%,'FaceAlpha',1)
 % pax.FaceColor='interp';
 pax.EdgeColor='none';
 colorbar;caxis([min(plotting_mat(:)),max(plotting_mat(:))])
 title({[dataset ' data in ' oceanname];['Beaching Distance of ' num2str(bcrit) ' km'];plotting_name})
+
+
+%% Comparing spotter and buoy velocities
+% mLatVelB=mLatVel;
+% mLonVelB=mLonVel;
+% mMagVelB=mMagVel;
+% mPingB=mPing;
+
+% mLatVelS=mLatVel;
+% mLonVelS=mLonVel;
+% mMagVelS=mMagVel;
+% mPingS=mPing;
+
+hvals=zeros(size(mPingS));
+
+for i=1%:numel(mPingS)
+    
+
+    ttest2(ones(1,mPingB)*mMagVelB,ones(1,mPingS)*mMagVelS)
+end
+
+
+
 
 
 %% Plotting locations of beached drifters
