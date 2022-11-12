@@ -16,13 +16,13 @@ location='all'; %ocean to consider
 load('coast_latlon.mat');
 [ds,dt,oceanname]=load_drift_data(dataset,location);
 
-%% ------------------------- SPECIFICATIONS ------------------------ %%
+%% SPECIFICATIONS ------------------------------------------------------ %%
 bcrit=10; %beaching distance. should be in km for spot and m for buoy
 makecoastdirmat=false;
 makevelmat=true;
 grid_type='area'; %'degree' or 'area'
 
-%% ------------------------- CREATE GRID ------------------------ %%
+%% REATE GRID ---------------------------------------------------------- %%
 % OPTIONS: 
 % 1. degree: square cells with side length in degrees
 % 2. area: cells with equal area
@@ -95,7 +95,7 @@ coast_y=coast_lat(coast2use);
 coast_x=coast_lon(coast2use);
 hmap=plot3(coast_x,coast_y,1.1*ones(size(coast_x)),'.','MarkerSize',0.5,'Color','m'); %plot3 so these points end up above the surf plot
 
-%% ------------------------- GET GRIDDED DATA ------------------------ %%
+%% GET GRIDDED DATA ---------------------------------------------------- %%
 
 %%% --- INITIALIZE MATS --- %%%
 mPing=zeros(size(xg));
@@ -105,6 +105,8 @@ mCoastDir=zeros(size(xg));
 mUniqueID=zeros(size(xg));
 mLonVelAll=zeros(size(xg));
 mLatVelAll=zeros(size(xg));
+cLonVel=cell(size(xg));
+cLatVel=cell(size(xg));
 
 %%% --- COLLECT DATA --- %%%
 for i=1:length(ds)
@@ -125,8 +127,8 @@ for i=1:length(ds)
         lonpt=ds(i).lon(j); 
     
         %PLACING IN GRID
-        row=find(latpt>yg(:,1),1,'last'); 
-        col=find(lonpt>xg(row,:),1,'last'); 
+        row=find(latpt>=yg(:,1),1,'last'); 
+        col=find(lonpt>=xg(row,:),1,'last'); 
     
         %STORE DATA
         mPing(row,col)=mPing(row,col)+1;
@@ -143,6 +145,8 @@ for i=1:length(ds)
         if makevelmat
             mLonVelAll(row,col)=mLonVelAll(row,col)+ds(i).speed(j)*cosd(90-ds(i).direction(j));
             mLatVelAll(row,col)=mLatVelAll(row,col)+ds(i).speed(j)*sind(90-ds(i).direction(j));
+            cLonVel{row,col}=[cLonVel{row,col},{ds(i).speed(j)*sind(90-ds(i).direction(j))}];
+            cLatVel{row,col}=[cLatVel{row,col},{ds(i).speed(j)*sind(90-ds(i).direction(j))}];
         end
 
     end
@@ -157,7 +161,13 @@ if makecoastdirmat
     mCoastDir(mUniqueID==0)=NaN;
 end
 
-%% ------------------ CALCULATE PROBABILITY MATRICES ----------------- %%
+mLatVelS=mLatVel;
+mLonVelS=mLonVel;
+mMagVelS=mMagVel;
+mPingS=mPing;
+cLonVelS=cLonVel;
+cLatVelS=cLatVel;
+%% CALCULATE PROBABILITY MATRICES -------------------------------------- %%
 
 %amount of drifters needed in each cell
 minimumdrifters=0; 
@@ -191,7 +201,7 @@ else
     mindriftext='(no minimum drifter in cell requirement)';
 end
 
-%% ----------------------------- PLOTTING ----------------------------- %%
+%% PLOTTING ------------------------------------------------------------ %%
 %Can plot:
 % 1. probbeach: probability will end beached
 % 2. probinbeach: probability it will ever enter coastal zone
@@ -280,56 +290,118 @@ title({[dataset ' data in ' oceanname];['Beaching Distance of ' num2str(bcrit) '
 
 
 %% Comparing spotter and buoy velocities
+
+% load('Velocity_cells.mat')
+
 % mLatVelB=mLatVel;
 % mLonVelB=mLonVel;
 % mMagVelB=mMagVel;
 % mPingB=mPing;
+% cLonVelB=cLonVel;
+% cLatVelB=cLatVel;
 
 % mLatVelS=mLatVel;
 % mLonVelS=mLonVel;
 % mMagVelS=mMagVel;
 % mPingS=mPing;
+% cLonVelS=cLonVel;
+% cLatVelS=cLatVel;
 
-hvals=zeros(size(mPingS));
+hvalsLat=zeros(size(cLatVelB));
+pvalsLat=zeros(size(cLatVelB));
+hvalsLon=zeros(size(cLatVelB));
+pvalsLon=zeros(size(cLatVelB));
+hvalsMag=zeros(size(cLatVelB));
+pvalsMag=zeros(size(cLatVelB));
 
-for i=1%:numel(mPingS)
-    
 
-    ttest2(ones(1,mPingB)*mMagVelB,ones(1,mPingS)*mMagVelS)
+aval=.05;
+
+for i=1:size(cLatVelB,1)
+    for j=1:size(cLatVelB,2)
+%     [hvals(i),pvals(i)]=ttest2(ones(1,mPingB(i))*mMagVelB(i),ones(1,mPingS(i))*mMagVelS(i),'alpha',0.8);
+        if isempty(cLatVelB{i,j}) || isempty(cLatVelS{i,j})
+            hvalsLat(i,j)=NaN;
+            hvalsLon(i,j)=NaN;
+            pvalsLat(i,j)=NaN;
+            pvalsLon(i,j)=NaN;
+        else
+            [hvalsLat(i,j),pvalsLat(i,j)]=ttest2(cell2mat(cLatVelB{i,j}),cell2mat(cLatVelS{i,j}),'alpha',aval);
+            [hvalsLon(i,j),pvalsLon(i,j)]=ttest2(cell2mat(cLonVelB{i,j}),cell2mat(cLonVelS{i,j}),'alpha',aval);
+            [hvalsMag(i,j),pvalsMag(i,j)]=ttest2(...
+                sqrt(cell2mat(cLonVelB{i,j}).^2+cell2mat(cLatVelB{i,j}).^2),...
+                sqrt(cell2mat(cLonVelS{i,j}).^2+cell2mat(cLatVelS{i,j}).^2),...
+                'alpha',aval);
+        end
+    end
 end
 
+rejectnull_lat=sum(hvalsLat(:)==1)
+acceptnull_lat=sum(hvalsLat(:)==0)
+
+rejectnull_lon=sum(hvalsLon(:)==1)
+acceptnull_lon=sum(hvalsLon(:)==0)
+
+rejectnull_mag=sum(hvalsMag(:)==1)
+acceptnull_mag=sum(hvalsMag(:)==0)
 
 
+%% HISTOGRAM COMPARING VELOCITY
+vLatVelB=[];
+vLonVelB=[];
+vLatVelS=[];
+vLonVelS=[];
+for i=1:size(cLatVelB,1)
+    for j=1:size(cLatVelB,2)
+       vLatVelB=[vLatVelB,cell2mat(cLatVelB{i,j})];
+       vLonVelB=[vLonVelB,cell2mat(cLonVelB{i,j})];
+       vLatVelS=[vLatVelS,cell2mat(cLatVelS{i,j})];
+       vLonVelS=[vLonVelS,cell2mat(cLonVelS{i,j})];
+    end
+end
 
+%Magnitude of velociity
+vMagVelB=sqrt(vLatVelB.^2+vLonVelB.^2);
+vMagVelS=sqrt(vLatVelS.^2+vLonVelS.^2);
+
+%%
+figure(1);clf;hold on
+binwid=.1;
+histogram(vMagVelB,'FaceColor','r','BinWidth',binwid,'Normalization','pdf')
+histogram(vMagVelS,'FaceColor','b','BinWidth',binwid,'Normalization','pdf')
+
+xlabel('velocity (km/hr)')
+ylabel('PDF')
+legend('buoy','spotter')
 
 %% Plotting locations of beached drifters
-
-n=1;
-figure(1);hold on
-box on
-
-for i=1:length(ds)
-    if ds(i).coast(end)<=bcrit
-        lats(n)=ds(i).lat(end);
-        lons(n)=ds(i).lon(end);
-        n=n+1;
-    end
-end
-
-
-IDspot=[305	348	611	621	637	642	645	650	651	670	1279	1299	1301	1504	1505	1966	1970	10025	10050	10122	10216];
-IDbuoy=[17365	18772	18874	23186	36978	41607	62587	98881	101950	107659	109513	122582	122732	132697	145707	145961	147140	9820090	9917894	9918812];
-idc=[IDspot,IDbuoy];
-
-n=1;
-for i=1:length(ds)
-    if sum(ds(i).id==idc)
-        lats1(n)=ds(i).lat(end);
-        lons1(n)=ds(i).lon(end);
-        n=n+1;
-    end
-end
-
-hmap.Color='b';
-hbeach=plot3(lons,lats,3*ones(size(lats)),'m*','LineWidth',1,'MarkerSize',4);
-hbeach1=plot3(lons1,lats1,3*ones(size(lats1)),'yo','LineWidth',1,'MarkerSize',4,'LineWidth',2);
+% 
+% n=1;
+% figure(1);hold on
+% box on
+% 
+% for i=1:length(ds)
+%     if ds(i).coast(end)<=bcrit
+%         lats(n)=ds(i).lat(end);
+%         lons(n)=ds(i).lon(end);
+%         n=n+1;
+%     end
+% end
+% 
+% 
+% IDspot=[305	348	611	621	637	642	645	650	651	670	1279	1299	1301	1504	1505	1966	1970	10025	10050	10122	10216];
+% IDbuoy=[17365	18772	18874	23186	36978	41607	62587	98881	101950	107659	109513	122582	122732	132697	145707	145961	147140	9820090	9917894	9918812];
+% idc=[IDspot,IDbuoy];
+% 
+% n=1;
+% for i=1:length(ds)
+%     if sum(ds(i).id==idc)
+%         lats1(n)=ds(i).lat(end);
+%         lons1(n)=ds(i).lon(end);
+%         n=n+1;
+%     end
+% end
+% 
+% hmap.Color='b';
+% hbeach=plot3(lons,lats,3*ones(size(lats)),'m*','LineWidth',1,'MarkerSize',4);
+% hbeach1=plot3(lons1,lats1,3*ones(size(lats1)),'yo','LineWidth',1,'MarkerSize',4,'LineWidth',2);
