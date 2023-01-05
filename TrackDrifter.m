@@ -28,7 +28,7 @@ if iscell(dataset) %need to load data
     if numel(dataset)==2
         ds=load_drift_data(string(dataset{2}(1)),string(dataset{2}(2)));
     else
-       ds=load_drift_data(string(dataset{2}(1)));
+       ds=load_drift_data(string(dataset{1}(:)));
     end
 else %struct input
     ds=dataset; 
