@@ -18,6 +18,10 @@ _Note: requires .mat files 'buoydata.mat' and/or 'spotdata.mat'_
 **TrackDrifter**
 Visualizes the trajectory of drifters. Output is interactive gui that shows the trajectory of drifter in time and their distance from the coast.
 
+**make_grid_fig2**
+Creates a gridded map of the globe spaced by either equal degrees or equal area. Input coastal point data for it to plot those points. Can also have the map wrap 
+_Note: make_grid_fig is an old version but I haven't been able to figure out how to do the fork thing. It might be used in other places. The varagin is super weird, don't use this._
+
 ## Scripts
 
 **BeachvsMaxShore**  Compares percent and number of drifters which beach to the maximum distance they go from the shore. 
