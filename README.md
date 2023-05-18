@@ -20,6 +20,7 @@ Visualizes the trajectory of drifters. Output is interactive gui that shows the 
 
 **make_grid_fig2**
 Creates a gridded map of the globe spaced by either equal degrees or equal area. Input coastal point data for it to plot those points. Can also have the map wrap 
+
 _Note: make_grid_fig is an old version but I haven't been able to figure out how to do the fork thing. It might be used in other places. The varagin is super weird, don't use this._
 
 ## Scripts
