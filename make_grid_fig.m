@@ -7,6 +7,7 @@ function [fig,xg,yg,xpt,ypt,hmap]=make_grid_fig(varargin)
 % 2. area: cells with equal area
 % grid_type,dt,fignum,coast_lat,coast_lon
 
+intab=false;
 intype=false;
 incoast=false;
 infignum=false;
@@ -71,7 +72,7 @@ switch grid_type
         dx=2;
         
         %BOUNDARIES
-        if ~intab
+        if intab
             latbounds=[floor(min(dt.lat)/dx)*dx,ceil(max(dt.lat)/dx)*dx];
             lonbounds=[floor(min(dt.lon)/dx)*dx,ceil(max(dt.lon)/dx)*dx];
         else
@@ -110,7 +111,6 @@ switch grid_type
         xcenter=diff(long)/2+long(1:end-1);
         ycenter=diff(latg)/2+latg(1:end-1);
         [xpt,ypt]=meshgrid(xcenter,ycenter);
-        
 end
 
 %GRID
@@ -128,7 +128,7 @@ xlabel('longitude');ylabel('latitude')
 
 % PLOTS GRID
 % plot(xpt,ypt,'.b','LineWidth',3)
-% mesh(xg,yg,zeros(size(xg)),'EdgeColor','#CDD6DE','facecolor','none','LineWidth',0.1)
+mesh(xg,yg,zeros(size(xg)),'EdgeColor','#CDD6DE','facecolor','none','LineWidth',0.1)
 
 %plotting land points for refrence
 coastloncheck=coast_lon>=lonbounds(1) & coast_lon<=lonbounds(2);

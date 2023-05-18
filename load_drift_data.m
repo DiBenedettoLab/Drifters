@@ -94,6 +94,13 @@ switch data_set
         ds=[buoydata.(dataname),spotdata.(dataname)]; 
         dt=[buoydata.tables.(dataname);spotdata.tables.(dataname)];
 
+%%% ------------------------------ GDP ------------------------------ %%%%
+    case 'GDP'
+        load('GDPra.mat')
+        ds=GDPra;
+        dt='I didnt make this sorry';
+        ocean_name='GDP';
+
 %%% --------------------------- INCORRECT --------------------------- %%%%
     otherwise %incorrect dataset input
         error("Set should be either 'spot', 'buoy', or 'both'")

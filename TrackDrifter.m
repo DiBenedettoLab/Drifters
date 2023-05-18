@@ -4,9 +4,9 @@
 function fig=TrackDrifter(IDs,dataset,varargin)
 % hf=TrackDrifter(IDs,ds,fignum)
 % hf=TrackDrifter(IDs,data2load,fignum)
-% IDs: either one ID number or multipl in a vecotor
+% IDs: either one ID number or multipl in a vector
 % ds: strucutre for faster processing
-% data2load: 'spot', 'buoy', or 'both'
+% data2load: 'spot', 'buoy', or 'both' (need func load_drift_data)
 % fignum: number figure to plot on (if empty will create a new figure)
 
 %%% ---------------------------- CONSTANTS ---------------------------- %%%
@@ -19,7 +19,7 @@ ax3pos = [0.4,0.1,0.55,0.85];
 justchecked=false;
 timenorm=false;
 
-%%% -------------------------- PARSE INPUTS -------------------------- %%%
+%%% -------------------------- PARSE INPUTS --------------------------- %%%
 args=varargin;
 
 % -- dataset -- %
@@ -39,6 +39,7 @@ end
 nofiginput=true;
 nobcritinput=true;
 notransloninput=true;
+adddaysnorm=false;
 
 if numel(args)>0
     %checks that each input has 
@@ -87,13 +88,31 @@ if notransloninput
     translon=false;
 end
 
-%%% ---------------------- FINDING DATA TO PLOT ---------------------- %%%
+%check if ds has days_norm
+if ~ismember('days_norm',fieldnames(ds))
+    adddaysnorm=true;   
+end
+
+%check if ID part of struct is capital
+if ismember('ID',fieldnames(ds))
+    for i=1:length(ds)
+        ds(i).id=ds(i).ID;
+    end
+end
+
+%%% ---------------------- FINDING DATA TO PLOT ----------------------- %%%
 
 times=[];
 
 if sum(sum(IDs(:)==[ds(:).id]))==numel(IDs) 
     for i=1:numel(IDs)
         indx(i)=find(IDs(i)==[ds(:).id]); %indices of the ID's
+
+        %not all data has days_norm
+        if adddaysnorm
+            ds(indx(i)).days_norm = ds(indx(i)).time/86400;
+        end
+
         times=[times;ds(indx(i)).days_norm];
         mintimes4norm(i)=min(ds(indx(i)).days_norm);
         maxtimes4norm(i)=max(ds(indx(i)).days_norm);
@@ -345,8 +364,7 @@ end
         end
     end % function TextToggle(~,~)
 
-
-% -=- Update images and quivers -=-
+%%% --------------------------- UPDATE PLOT --------------------------- %%%
     function updatePlot(~)
 
         %if things were just unchecked or checked

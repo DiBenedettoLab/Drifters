@@ -1,6 +1,7 @@
 %Goal of this plot: 
 %map of the world where I do a colormap that shows how long it will take
 %the drifter to beach. The grid map will only show beached drifters
+%the trajectories are plotted where the color of the points is a colormap
 %% Time to beach again
 
 %%% --- LOAD DATA --- %%%

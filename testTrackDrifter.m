@@ -3,7 +3,10 @@
 
 
 %% Beached Spotter
+%with older data
+%load in data as a structured array!
 [ds]=load_drift_data('spot');
+
 clc
 ID=[305
 348
@@ -27,3 +30,8 @@ ID=[305
 10122
 10216];
 TrackDrifter(ID,ds,'bcrit',10,'adjlon',70);
+
+%% testing new data
+load('/Users/helenaschreder/Desktop/UW/Research/Drifter/Drifters/GDPdata/GDPnra.mat')
+ds=GDPnra(1:2);
+TrackDrifter([ds.ID],ds,'adjlon',70);
